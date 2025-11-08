@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Upload, FileImage, FileText, Loader2, CheckCircle2 } from "lucide-react";
+import { Upload, FileImage, FileText, Loader2, CheckCircle2, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CameraCapture } from "@/components/CameraCapture";
 import { extractText, OcrProgress } from "@/lib/ocr";
 import { extractWithAI, isAIExtractionAvailable, AIExtractionProgress } from "@/lib/ai-extractor";
 import { smartParse } from "@/lib/parser";
@@ -29,6 +31,8 @@ export default function UploadPage() {
   const [extractedText, setExtractedText] = useState<string>("");
   const [showDebugInfo, setShowDebugInfo] = useState(false);
   const [useAI, setUseAI] = useState(isAIExtractionAvailable());
+  const [uploadMode, setUploadMode] = useState<"file" | "camera">("file");
+  const [showCamera, setShowCamera] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -41,6 +45,18 @@ export default function UploadPage() {
         setPreviewUrl(url);
       }
     }
+  };
+
+  const handleCameraCapture = (capturedFile: File) => {
+    setFile(capturedFile);
+    const url = URL.createObjectURL(capturedFile);
+    setPreviewUrl(url);
+    setShowCamera(false);
+    setUploadMode("file"); // Switch back to file view to show preview
+  };
+
+  const handleCameraCancel = () => {
+    setShowCamera(false);
   };
 
   const handleUpload = async () => {
@@ -209,65 +225,107 @@ export default function UploadPage() {
           </CardContent>
         </Card>
 
-        {/* File Upload */}
+        {/* File Upload or Camera */}
         <Card>
           <CardHeader>
-            <CardTitle>Upload File</CardTitle>
+            <CardTitle>Upload Timetable</CardTitle>
             <CardDescription>
-              Supported formats: JPEG, PNG, PDF, CSV. Images are automatically enhanced with AI preprocessing for better accuracy.
+              Take a photo or upload an existing file. Supported formats: JPEG, PNG, PDF, CSV.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-center w-full">
-                <label
-                  htmlFor="file-upload"
-                  className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer hover:bg-accent/50 transition-colors"
-                >
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    {previewUrl ? (
-                      <img
-                        src={previewUrl}
-                        alt="Preview"
-                        className="max-h-48 rounded"
+            <Tabs value={uploadMode} onValueChange={(value) => setUploadMode(value as "file" | "camera")} className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="file" className="flex items-center gap-2">
+                  <Upload className="h-4 w-4" />
+                  <span className="hidden sm:inline">Upload File</span>
+                  <span className="sm:hidden">Upload</span>
+                </TabsTrigger>
+                <TabsTrigger value="camera" className="flex items-center gap-2">
+                  <Camera className="h-4 w-4" />
+                  <span className="hidden sm:inline">Take Photo</span>
+                  <span className="sm:hidden">Camera</span>
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="file" className="mt-4">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-center w-full">
+                    <label
+                      htmlFor="file-upload"
+                      className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer hover:bg-accent/50 transition-colors"
+                    >
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        {previewUrl ? (
+                          <img
+                            src={previewUrl}
+                            alt="Preview"
+                            className="max-h-48 rounded"
+                          />
+                        ) : (
+                          <>
+                            <Upload className="w-12 h-12 mb-3 text-muted-foreground" />
+                            <p className="mb-2 text-sm text-muted-foreground text-center px-4">
+                              <span className="font-semibold">Click to upload</span> or drag and drop
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              JPEG, PNG, PDF, or CSV
+                            </p>
+                          </>
+                        )}
+                      </div>
+                      <Input
+                        id="file-upload"
+                        type="file"
+                        className="hidden"
+                        accept="image/*,.pdf,.csv"
+                        onChange={handleFileChange}
+                        disabled={isProcessing}
                       />
-                    ) : (
-                      <>
-                        <Upload className="w-12 h-12 mb-3 text-muted-foreground" />
-                        <p className="mb-2 text-sm text-muted-foreground">
-                          <span className="font-semibold">Click to upload</span> or drag and drop
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          JPEG, PNG, PDF, or CSV
-                        </p>
-                      </>
-                    )}
+                    </label>
                   </div>
-                  <Input
-                    id="file-upload"
-                    type="file"
-                    className="hidden"
-                    accept="image/*,.pdf,.csv"
-                    onChange={handleFileChange}
-                    disabled={isProcessing}
-                  />
-                </label>
-              </div>
 
-              {file && (
-                <div className="flex items-center gap-2 p-3 bg-accent rounded-lg">
-                  {file.type.startsWith('image/') ? (
-                    <FileImage className="h-5 w-5" />
-                  ) : (
-                    <FileText className="h-5 w-5" />
+                  {file && (
+                    <div className="flex items-center gap-2 p-3 bg-accent rounded-lg">
+                      {file.type.startsWith('image/') ? (
+                        <FileImage className="h-5 w-5" />
+                      ) : (
+                        <FileText className="h-5 w-5" />
+                      )}
+                      <span className="text-sm flex-1 truncate">{file.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {(file.size / 1024).toFixed(1)} KB
+                      </span>
+                    </div>
                   )}
-                  <span className="text-sm flex-1">{file.name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {(file.size / 1024).toFixed(1)} KB
-                  </span>
                 </div>
-              )}
-            </div>
+              </TabsContent>
+              
+              <TabsContent value="camera" className="mt-4">
+                {showCamera ? (
+                  <CameraCapture
+                    onCapture={handleCameraCapture}
+                    onCancel={handleCameraCancel}
+                  />
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg">
+                      <Camera className="w-12 h-12 mb-3 text-muted-foreground" />
+                      <p className="mb-2 text-sm text-muted-foreground font-semibold">
+                        Ready to take a photo
+                      </p>
+                      <p className="text-xs text-muted-foreground mb-4 text-center px-4">
+                        Position your camera to capture the entire timetable
+                      </p>
+                      <Button onClick={() => setShowCamera(true)} disabled={isProcessing}>
+                        <Camera className="mr-2 h-4 w-4" />
+                        Open Camera
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
 
@@ -349,18 +407,19 @@ export default function UploadPage() {
               <CardTitle className="text-sm font-medium">💡 Tips for Best Results</CardTitle>
             </CardHeader>
             <CardContent className="text-sm space-y-2">
-              <p className="font-medium">For Image Files:</p>
-              <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-2">
-                <li>Ensure the image is clear and well-lit</li>
-                <li>Keep the camera steady to avoid blur</li>
-                <li>Make sure the text is horizontal and readable</li>
-                <li>Higher resolution images work better</li>
+              <p className="font-medium">For Camera/Images:</p>
+              <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-2 text-xs sm:text-sm">
+                <li>Ensure good lighting and avoid shadows</li>
+                <li>Hold device steady to avoid blur</li>
+                <li>Capture entire timetable in frame</li>
+                <li>Keep text horizontal and readable</li>
+                <li>Avoid glare on glossy surfaces</li>
               </ul>
               <p className="font-medium mt-3">For CSV Files:</p>
-              <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-2">
-                <li>Format: <code className="bg-muted px-1 rounded">Date,Fajr,Dhuhr,Asr,Maghrib,Isha</code></li>
+              <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-2 text-xs sm:text-sm">
+                <li>Format: <code className="bg-muted px-1 rounded text-xs">Date,Fajr,Dhuhr,Asr,Maghrib,Isha</code></li>
                 <li>Times in 24-hour format (e.g., 05:30, 13:45)</li>
-                <li>Download sample: <code className="bg-muted px-1 rounded">public/sample-timetable.csv</code></li>
+                <li>See sample: <code className="bg-muted px-1 rounded text-xs">public/sample-timetable.csv</code></li>
               </ul>
             </CardContent>
           </Card>

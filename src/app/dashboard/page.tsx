@@ -123,32 +123,33 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="container mx-auto max-w-4xl px-4 py-12">
+    <div className="container mx-auto max-w-4xl px-4 py-6 sm:py-12">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6 sm:mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-3xl font-bold">{mosqueName || "Prayer Times"}</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold truncate">{mosqueName || "Prayer Times"}</h1>
           <Link href="/settings">
-            <Button variant="outline" size="icon">
+            <Button variant="outline" size="icon" className="h-9 w-9 sm:h-10 sm:w-10">
               <Edit2 className="h-4 w-4" />
             </Button>
           </Link>
         </div>
 
         {/* Date Navigation */}
-        <div className="flex items-center justify-between gap-4 mt-4">
+        <div className="flex items-center justify-between gap-2 sm:gap-4 mt-4">
           <Button
             variant="outline"
             size="sm"
             onClick={goToPreviousDay}
             disabled={currentIndex === 0}
+            className="h-9 px-2 sm:px-4"
           >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Previous
+            <ChevronLeft className="h-4 w-4" />
+            <span className="hidden sm:inline ml-1">Previous</span>
           </Button>
 
-          <div className="flex-1 text-center">
-            <p className="text-lg font-medium">
+          <div className="flex-1 text-center min-w-0">
+            <p className="text-sm sm:text-lg font-medium px-2 wrap-break-word">
               {new Date(todayTimes.date).toLocaleDateString('en-US', { 
                 weekday: 'long', 
                 year: 'numeric', 
@@ -157,8 +158,8 @@ export default function DashboardPage() {
               })}
             </p>
             {todayTimes.date !== currentTime.toISOString().split('T')[0] && (
-              <div className="flex items-center justify-center gap-2 mt-1">
-                <p className="text-sm text-amber-600 dark:text-amber-400">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 mt-1">
+                <p className="text-xs sm:text-sm text-amber-600 dark:text-amber-400">
                   ⚠️ Not today&apos;s date
                 </p>
                 {allTimes.findIndex(t => t.date === currentTime.toISOString().split('T')[0]) >= 0 && (
@@ -166,7 +167,7 @@ export default function DashboardPage() {
                     variant="link"
                     size="sm"
                     onClick={goToToday}
-                    className="h-auto p-0 text-sm"
+                    className="h-auto p-0 text-xs sm:text-sm"
                   >
                     Go to today
                   </Button>
@@ -183,26 +184,27 @@ export default function DashboardPage() {
             size="sm"
             onClick={goToNextDay}
             disabled={currentIndex === allTimes.length - 1}
+            className="h-9 px-2 sm:px-4"
           >
-            Next
-            <ChevronRight className="h-4 w-4 ml-1" />
+            <span className="hidden sm:inline mr-1">Next</span>
+            <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
       {/* Next Prayer Countdown */}
       {nextPrayer && (
-        <Card className="mb-8 border-primary/50 bg-gradient-to-br from-primary/10 to-background">
-          <CardContent className="pt-6">
+        <Card className="mb-6 sm:mb-8 border-primary/50 bg-linear-to-br from-primary/10 to-background">
+          <CardContent className="pt-4 sm:pt-6">
             <div className="text-center">
-              <p className="text-sm font-medium text-muted-foreground">Next Prayer</p>
-              <h2 className="mt-2 text-4xl font-bold">{capitalize(nextPrayer.name)}</h2>
-              <p className="mt-2 text-2xl font-semibold text-primary">
+              <p className="text-xs sm:text-sm font-medium text-muted-foreground">Next Prayer</p>
+              <h2 className="mt-2 text-3xl sm:text-4xl font-bold">{capitalize(nextPrayer.name)}</h2>
+              <p className="mt-2 text-xl sm:text-2xl font-semibold text-primary">
                 {to12Hour(nextPrayer.time)}
               </p>
-              <div className="mt-4 flex items-center justify-center gap-2 text-muted-foreground">
+              <div className="mt-3 sm:mt-4 flex items-center justify-center gap-2 text-muted-foreground">
                 <Clock className="h-4 w-4" />
-                <span className="text-lg">
+                <span className="text-base sm:text-lg">
                   {formatTimeRemaining(nextPrayer.timeRemaining)} remaining
                 </span>
               </div>

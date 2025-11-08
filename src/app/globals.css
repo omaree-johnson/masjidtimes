@@ -119,4 +119,29 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Mobile-friendly touch targets */
+  @media (pointer: coarse) {
+    button, a, input, select, textarea {
+      @apply min-h-11;
+    }
+  }
+  
+  /* Prevent text size adjustment on orientation change */
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  
+  /* Smooth scrolling */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+  
+  /* Better tap highlight for mobile */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
 }
