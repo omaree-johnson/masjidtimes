@@ -13,6 +13,9 @@ import {
   getFullDirectionName,
   isCompassSupported,
   requestOrientationPermission,
+  isFacingQibla,
+  triggerHapticFeedback,
+  playConfirmationSound,
   type QiblaDirection,
   type GeolocationPosition,
 } from '@/lib/qibla';
@@ -26,6 +29,8 @@ export default function QiblaCompass() {
   const [deviceHeading, setDeviceHeading] = useState<number | null>(null);
   const [compassEnabled, setCompassEnabled] = useState(false);
   const [compassSupported, setCompassSupported] = useState(false);
+  const [isFacingQiblaDirection, setIsFacingQiblaDirection] = useState(false);
+  const [hasPlayedConfirmation, setHasPlayedConfirmation] = useState(false);
 
   // Check compass support on mount
   useEffect(() => {
@@ -63,6 +68,36 @@ export default function QiblaCompass() {
       window.removeEventListener('deviceorientation', handleOrientation as any, true);
     };
   }, [compassEnabled]);
+
+  // Check if facing Qibla and provide feedback
+  useEffect(() => {
+    if (!qiblaDirection || deviceHeading === null || !compassEnabled) {
+      setIsFacingQiblaDirection(false);
+      setHasPlayedConfirmation(false);
+      return;
+    }
+
+    const facingQibla = isFacingQibla(deviceHeading, qiblaDirection.direction, 15);
+    setIsFacingQiblaDirection(facingQibla);
+
+    if (facingQibla && !hasPlayedConfirmation) {
+      // Trigger haptic feedback
+      triggerHapticFeedback([100, 50, 100]); // Double pulse
+      
+      // Play confirmation sound
+      playConfirmationSound();
+      
+      // Show toast notification
+      toast.success('You are facing the Qibla! ☪️', {
+        duration: 3000,
+      });
+      
+      setHasPlayedConfirmation(true);
+    } else if (!facingQibla && hasPlayedConfirmation) {
+      // Reset when user moves away
+      setHasPlayedConfirmation(false);
+    }
+  }, [deviceHeading, qiblaDirection, compassEnabled, hasPlayedConfirmation]);
 
   const handleGetLocation = useCallback(async () => {
     setLoading(true);
@@ -187,11 +222,16 @@ export default function QiblaCompass() {
               )}
 
               {compassEnabled && deviceHeading !== null && (
-                <div className="flex items-center justify-center gap-2">
+                <div className="flex flex-col items-center justify-center gap-2">
                   <Badge variant="secondary" className="gap-1">
                     <Compass className="h-3 w-3" />
                     Live Compass Active
                   </Badge>
+                  {isFacingQiblaDirection && (
+                    <Badge variant="default" className="gap-1 bg-green-600 hover:bg-green-700 animate-pulse">
+                      ☪️ Facing Qibla
+                    </Badge>
+                  )}
                 </div>
               )}
 
@@ -210,11 +250,15 @@ export default function QiblaCompass() {
 
       {/* Compass Display */}
       {qiblaDirection && (
-        <Card>
+        <Card className={isFacingQiblaDirection ? 'ring-4 ring-green-500/50 shadow-lg shadow-green-500/20' : ''}>
           <CardContent className="pt-6">
             <div className="relative aspect-square max-w-md mx-auto">
               {/* Compass Circle */}
-              <div className="absolute inset-0 rounded-full border-4 border-primary/20 bg-gradient-to-br from-background to-muted">
+              <div className={`absolute inset-0 rounded-full border-4 bg-gradient-to-br from-background to-muted transition-all duration-300 ${
+                isFacingQiblaDirection 
+                  ? 'border-green-500 shadow-lg shadow-green-500/30' 
+                  : 'border-primary/20'
+              }`}>
                 {/* Cardinal Directions */}
                 <div className="absolute inset-0">
                   {/* North */}
@@ -261,22 +305,32 @@ export default function QiblaCompass() {
 
                 {/* Qibla Needle */}
                 <div
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-transform duration-300 ease-out"
+                  className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-transform duration-300 ease-out ${
+                    isFacingQiblaDirection ? 'scale-110' : ''
+                  }`}
                   style={{
-                    transform: `translate(-50%, -50%) rotate(${needleRotation}deg)`,
+                    transform: `translate(-50%, -50%) rotate(${needleRotation}deg) ${
+                      isFacingQiblaDirection ? 'scale(1.1)' : 'scale(1)'
+                    }`,
                     width: '8px',
                     height: '45%',
                   }}
                 >
                   {/* Green Arrow pointing to Qibla */}
-                  <div className="relative h-full w-full">
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[16px] border-l-transparent border-r-[16px] border-r-transparent border-t-[40px] border-t-green-500 drop-shadow-lg" />
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1 h-full bg-green-500" />
+                  <div className={`relative h-full w-full ${isFacingQiblaDirection ? 'animate-pulse' : ''}`}>
+                    <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[16px] border-l-transparent border-r-[16px] border-r-transparent border-t-[40px] drop-shadow-lg ${
+                      isFacingQiblaDirection ? 'border-t-green-400' : 'border-t-green-500'
+                    }`} />
+                    <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-1 h-full ${
+                      isFacingQiblaDirection ? 'bg-green-400' : 'bg-green-500'
+                    }`} />
                   </div>
                 </div>
 
                 {/* Center Dot */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-primary border-2 border-background shadow-lg z-10" />
+                <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-background shadow-lg z-10 transition-colors ${
+                  isFacingQiblaDirection ? 'bg-green-500' : 'bg-primary'
+                }`} />
               </div>
 
               {/* Direction Label */}
@@ -303,12 +357,13 @@ export default function QiblaCompass() {
             {compassEnabled ? (
               <>
                 <strong>Hold your device flat</strong> and rotate until the green arrow points upward.
-                That direction is toward the Qibla.
+                You will feel a <strong>vibration</strong>, hear a <strong>confirmation sound</strong>, 
+                and see a <strong>green glow</strong> when facing the Qibla correctly.
               </>
             ) : (
               <>
                 <strong>Point the top of your screen toward North</strong>, then face the direction of the green arrow
-                to face the Qibla.
+                to face the Qibla. Enable live compass for automatic confirmation with haptic feedback.
               </>
             )}
           </AlertDescription>

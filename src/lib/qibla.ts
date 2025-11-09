@@ -183,3 +183,69 @@ export async function requestOrientationPermission(): Promise<boolean> {
   // Permission not needed on this device
   return true;
 }
+
+/**
+ * Check if user is facing the Qibla within tolerance
+ * @param currentHeading Current device heading in degrees
+ * @param qiblaDirection Qibla direction in degrees
+ * @param tolerance Tolerance in degrees (default 15°)
+ * @returns true if facing Qibla within tolerance
+ */
+export function isFacingQibla(
+  currentHeading: number,
+  qiblaDirection: number,
+  tolerance: number = 15
+): boolean {
+  // Calculate the difference between current heading and qibla direction
+  let diff = Math.abs(currentHeading - qiblaDirection);
+  
+  // Handle wrap-around (e.g., 350° vs 10°)
+  if (diff > 180) {
+    diff = 360 - diff;
+  }
+  
+  return diff <= tolerance;
+}
+
+/**
+ * Trigger haptic feedback (vibration) if supported
+ * @param pattern Vibration pattern in milliseconds
+ */
+export function triggerHapticFeedback(pattern: number | number[] = 200): void {
+  if (typeof window === 'undefined') return;
+  
+  if ('vibrate' in navigator) {
+    navigator.vibrate(pattern);
+  }
+}
+
+/**
+ * Play confirmation sound when facing Qibla
+ * Uses Web Audio API for better mobile support
+ */
+export function playConfirmationSound(): void {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    // Pleasant confirmation tone (similar to success sound)
+    oscillator.frequency.value = 800; // Hz
+    oscillator.type = 'sine';
+    
+    // Fade in and out
+    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.01);
+    gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.3);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.3);
+  } catch (error) {
+    console.error('Failed to play confirmation sound:', error);
+  }
+}
