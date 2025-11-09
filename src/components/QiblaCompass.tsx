@@ -31,6 +31,7 @@ export default function QiblaCompass() {
   const [compassSupported, setCompassSupported] = useState(false);
   const [isFacingQiblaDirection, setIsFacingQiblaDirection] = useState(false);
   const [hasPlayedConfirmation, setHasPlayedConfirmation] = useState(false);
+  const [lastConfirmationTime, setLastConfirmationTime] = useState<number>(0);
 
   // Check compass support on mount
   useEffect(() => {
@@ -80,7 +81,11 @@ export default function QiblaCompass() {
     const facingQibla = isFacingQibla(deviceHeading, qiblaDirection.direction, 15);
     setIsFacingQiblaDirection(facingQibla);
 
-    if (facingQibla && !hasPlayedConfirmation) {
+    const now = Date.now();
+    const cooldownPeriod = 5000; // 5 seconds cooldown to prevent repeated triggers
+    const timeSinceLastConfirmation = now - lastConfirmationTime;
+
+    if (facingQibla && !hasPlayedConfirmation && timeSinceLastConfirmation > cooldownPeriod) {
       // Trigger haptic feedback
       triggerHapticFeedback([100, 50, 100]); // Double pulse
       
@@ -93,11 +98,18 @@ export default function QiblaCompass() {
       });
       
       setHasPlayedConfirmation(true);
+      setLastConfirmationTime(now);
     } else if (!facingQibla && hasPlayedConfirmation) {
-      // Reset when user moves away
-      setHasPlayedConfirmation(false);
+      // Only reset if user has moved significantly away for at least 1 second
+      const resetDelay = setTimeout(() => {
+        if (!isFacingQibla(deviceHeading, qiblaDirection.direction, 15)) {
+          setHasPlayedConfirmation(false);
+        }
+      }, 1000);
+      
+      return () => clearTimeout(resetDelay);
     }
-  }, [deviceHeading, qiblaDirection, compassEnabled, hasPlayedConfirmation]);
+  }, [deviceHeading, qiblaDirection, compassEnabled, hasPlayedConfirmation, lastConfirmationTime]);
 
   const handleGetLocation = useCallback(async () => {
     setLoading(true);
