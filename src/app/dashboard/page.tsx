@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useTheme } from "next-themes";
 import { Calendar, Clock, Edit2, Upload, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,8 +11,11 @@ import { storage } from "@/lib/storage";
 import { DailyPrayerTime } from "@/lib/types";
 import { getNextPrayer, formatTimeRemaining, capitalize, to12Hour, prayerNames } from "@/lib/prayer-utils";
 import { PrayerTimeCard } from "@/components/PrayerTimeCard";
+import { notificationService } from "@/lib/notifications";
+import { darkModeScheduler } from "@/lib/dark-mode-scheduler";
 
 export default function DashboardPage() {
+  const { setTheme } = useTheme();
   const [todayTimes, setTodayTimes] = useState<DailyPrayerTime | null>(null);
   const [mosqueName, setMosqueName] = useState<string | null>(null);
   const [nextPrayer, setNextPrayer] = useState<ReturnType<typeof getNextPrayer>>(null);
@@ -38,6 +42,12 @@ export default function DashboardPage() {
     if (times) {
       const next = getNextPrayer(times);
       setNextPrayer(next);
+      
+      // Schedule notifications for today's prayers
+      notificationService.scheduleNotifications(times);
+      
+      // Initialize dark mode scheduler
+      darkModeScheduler.initialize(times, setTheme);
     }
 
     // Update current time every second
@@ -50,8 +60,12 @@ export default function DashboardPage() {
       }
     }, 1000);
 
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      clearInterval(interval);
+      notificationService.clearScheduledNotifications();
+      darkModeScheduler.clearScheduledChanges();
+    };
+  }, [setTheme]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -239,17 +253,54 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Hijri Date (if available) */}
-      {todayTimes.hijriDate && (
-        <Card className="mt-6">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">Hijri Date</p>
-              <p className="mt-1 text-lg font-medium">{todayTimes.hijriDate}</p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Quick Access Cards */}
+      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        {/* Qibla Finder */}
+        <Link href="/qibla">
+          <Card className="hover:border-primary transition-colors cursor-pointer h-full">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-primary/10 rounded-full">
+                  <svg
+                    className="h-6 w-6 text-primary"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-semibold">Qibla Finder</h3>
+                  <p className="text-sm text-muted-foreground">Find prayer direction</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        {/* Hijri Date */}
+        {todayTimes.hijriDate && (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-primary/10 rounded-full">
+                  <Calendar className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Hijri Date</h3>
+                  <p className="text-sm text-muted-foreground">{todayTimes.hijriDate}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Moon, Sun, Settings, Upload, Home, Calendar, Menu, X } from "lucide-react";
+import { Moon, Sun, Settings, Upload, Home, Calendar, Menu, X, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
@@ -22,6 +22,7 @@ export function Navbar() {
     { href: "/", label: "Home", icon: Home },
     { href: "/dashboard", label: "Dashboard", icon: Calendar },
     { href: "/upload", label: "Upload", icon: Upload },
+    { href: "/qibla", label: "Qibla", icon: Navigation },
   ];
 
   return (

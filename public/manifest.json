@@ -86,6 +86,19 @@
           "type": "image/png"
         }
       ]
+    },
+    {
+      "name": "Qibla Finder",
+      "short_name": "Qibla",
+      "description": "Find the direction to the Kaaba",
+      "url": "/qibla",
+      "icons": [
+        {
+          "src": "/icons/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     }
   ],
   "categories": ["productivity", "lifestyle", "utilities"],
@@ -102,6 +115,7 @@
   "iarc_rating_id": "",
   "related_applications": [],
   "permissions": [
-    "camera"
+    "camera",
+    "geolocation"
   ]
 }

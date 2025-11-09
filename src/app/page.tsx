@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Upload, Calendar, Clock, Smartphone, Zap, Shield } from "lucide-react";
+import { Upload, Calendar, Clock, Smartphone, Zap, Shield, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -102,6 +102,16 @@ export default function Home() {
               <CardTitle>Lightning Fast</CardTitle>
               <CardDescription>
                 Built with Next.js 15 and optimized for performance. Instant load times.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <Navigation className="mb-2 h-8 w-8 text-primary" />
+              <CardTitle>Qibla Finder</CardTitle>
+              <CardDescription>
+                Find the direction to the Kaaba from anywhere using your device&apos;s compass and location.
               </CardDescription>
             </CardHeader>
           </Card>

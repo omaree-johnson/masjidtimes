@@ -144,7 +144,7 @@ export default function UploadPage() {
       setProgress(100);
       setStatus("Extraction complete!");
 
-      // Save to localStorage
+      // Save to localStorage (with multiple mosques support)
       const timetable: Timetable = {
         id: Date.now().toString(),
         userId: 'local', // Will be updated when auth is added
@@ -154,10 +154,9 @@ export default function UploadPage() {
         times: parsedData,
       };
 
-      storage.saveTimetable(timetable);
-      storage.saveMosqueName(mosqueName.trim());
-
-      toast.success(`Successfully extracted ${parsedData.length} days of prayer times!`);
+      storage.saveMosque(timetable); // Use new saveMosque method
+      
+      toast.success(`Successfully extracted ${parsedData.length} days of prayer times for ${mosqueName.trim()}!`);
       
       // Navigate to dashboard after a short delay
       setTimeout(() => {
