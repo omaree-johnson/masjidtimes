@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Navbar } from "@/components/Navbar";
+import { BottomNav } from "@/components/BottomNav";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -34,7 +35,9 @@ export const viewport: Viewport = {
   ],
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -55,7 +58,8 @@ export default function RootLayout({
         >
           <div className="min-h-screen bg-background">
             <Navbar />
-            <main>{children}</main>
+            <main className="pb-20 md:pb-0">{children}</main>
+            <BottomNav />
           </div>
           <InstallPrompt />
           <Toaster />

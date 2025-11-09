@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { Calendar, Clock, Edit2, Upload, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar, Clock, Edit2, Upload, AlertCircle, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -13,6 +13,9 @@ import { getNextPrayer, formatTimeRemaining, capitalize, to12Hour, prayerNames }
 import { PrayerTimeCard } from "@/components/PrayerTimeCard";
 import { notificationService } from "@/lib/notifications";
 import { darkModeScheduler } from "@/lib/dark-mode-scheduler";
+import { useSwipe } from "@/hooks/use-swipe";
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
+import { toast } from "sonner";
 
 export default function DashboardPage() {
   const { setTheme } = useTheme();
@@ -114,6 +117,41 @@ export default function DashboardPage() {
     }
   };
 
+  const handleRefresh = async () => {
+    // Reload data from storage
+    const times = storage.getTodayPrayerTimes();
+    const name = storage.getMosqueName();
+    const all = storage.getAllPrayerTimes();
+    
+    setTodayTimes(times);
+    setMosqueName(name);
+    setAllTimes(all);
+    
+    if (times) {
+      const index = all.findIndex((t: DailyPrayerTime) => t.date === times.date);
+      setCurrentIndex(index >= 0 ? index : 0);
+      const next = getNextPrayer(times);
+      setNextPrayer(next);
+    }
+    
+    toast.success('Prayer times refreshed');
+    
+    // Small delay for better UX
+    await new Promise(resolve => setTimeout(resolve, 500));
+  };
+
+  // Swipe gestures for day navigation
+  const swipeHandlers = useSwipe({
+    onSwipeLeft: goToNextDay,
+    onSwipeRight: goToPreviousDay,
+  });
+
+  // Pull to refresh
+  const { isPulling, isRefreshing, pullDistance, shouldRefresh } = usePullToRefresh({
+    onRefresh: handleRefresh,
+    enabled: !!todayTimes,
+  });
+
   if (!todayTimes) {
     return (
       <div className="container mx-auto max-w-4xl px-4 py-12">
@@ -137,7 +175,30 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="container mx-auto max-w-4xl px-4 py-6 sm:py-12">
+    <div 
+      className="container mx-auto max-w-4xl px-4 py-6 sm:py-12 relative"
+      {...swipeHandlers}
+    >
+      {/* Pull to Refresh Indicator */}
+      {(isPulling || isRefreshing) && (
+        <div 
+          className="fixed top-16 left-1/2 -translate-x-1/2 z-40 transition-all duration-200"
+          style={{
+            opacity: isPulling ? Math.min(pullDistance / 80, 1) : 1,
+            transform: `translate(-50%, ${isPulling ? pullDistance / 3 : 0}px)`,
+          }}
+        >
+          <div className="bg-background/95 backdrop-blur border rounded-full p-3 shadow-lg">
+            <RefreshCw 
+              className={`h-5 w-5 ${isRefreshing || shouldRefresh ? 'animate-spin' : ''} text-primary`}
+              style={{
+                transform: !isRefreshing ? `rotate(${pullDistance * 2}deg)` : undefined,
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-6 sm:mb-8">
         <div className="flex items-center justify-between mb-4">
