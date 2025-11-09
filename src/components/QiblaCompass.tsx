@@ -251,7 +251,7 @@ export default function QiblaCompass() {
       {/* Compass Display */}
       {qiblaDirection && (
         <Card className={isFacingQiblaDirection ? 'ring-4 ring-green-500/50 shadow-lg shadow-green-500/20' : ''}>
-          <CardContent className="pt-6">
+          <CardContent className="pt-6 pb-16">
             <div className="relative aspect-square max-w-md mx-auto">
               {/* Compass Circle */}
               <div className={`absolute inset-0 rounded-full border-4 bg-gradient-to-br from-background to-muted transition-all duration-300 ${
@@ -351,7 +351,7 @@ export default function QiblaCompass() {
 
       {/* Instructions */}
       {qiblaDirection && (
-        <Alert>
+        <Alert className="mt-6">
           <Info className="h-4 w-4" />
           <AlertDescription>
             {compassEnabled ? (
