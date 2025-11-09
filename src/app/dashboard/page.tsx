@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { Calendar, Clock, Edit2, Upload, AlertCircle, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import { Calendar, Clock, Edit2, Upload, AlertCircle, ChevronLeft, ChevronRight, RefreshCw, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { storage } from "@/lib/storage";
-import { DailyPrayerTime } from "@/lib/types";
+import { DailyPrayerTime, Timetable } from "@/lib/types";
 import { getNextPrayer, formatTimeRemaining, capitalize, to12Hour, prayerNames } from "@/lib/prayer-utils";
 import { PrayerTimeCard } from "@/components/PrayerTimeCard";
 import { notificationService } from "@/lib/notifications";
@@ -16,6 +16,13 @@ import { darkModeScheduler } from "@/lib/dark-mode-scheduler";
 import { useSwipe } from "@/hooks/use-swipe";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function DashboardPage() {
   const { setTheme } = useTheme();
@@ -25,16 +32,22 @@ export default function DashboardPage() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [allTimes, setAllTimes] = useState<DailyPrayerTime[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [mosques, setMosques] = useState<Timetable[]>([]);
+  const [activeMosqueId, setActiveMosqueId] = useState<string | null>(null);
 
   useEffect(() => {
     // Load data from storage
     const times = storage.getTodayPrayerTimes();
     const name = storage.getMosqueName();
     const all = storage.getAllPrayerTimes();
+    const allMosques = storage.getAllMosques();
+    const activeId = storage.getActiveMosqueId();
     
     setTodayTimes(times);
     setMosqueName(name);
     setAllTimes(all);
+    setMosques(allMosques);
+    setActiveMosqueId(activeId);
     
     // Find index of current displayed date
     if (times && all.length > 0) {
@@ -122,10 +135,14 @@ export default function DashboardPage() {
     const times = storage.getTodayPrayerTimes();
     const name = storage.getMosqueName();
     const all = storage.getAllPrayerTimes();
+    const allMosques = storage.getAllMosques();
+    const activeId = storage.getActiveMosqueId();
     
     setTodayTimes(times);
     setMosqueName(name);
     setAllTimes(all);
+    setMosques(allMosques);
+    setActiveMosqueId(activeId);
     
     if (times) {
       const index = all.findIndex((t: DailyPrayerTime) => t.date === times.date);
@@ -138,6 +155,39 @@ export default function DashboardPage() {
     
     // Small delay for better UX
     await new Promise(resolve => setTimeout(resolve, 500));
+  };
+
+  const handleMosqueChange = (mosqueId: string) => {
+    storage.setActiveMosque(mosqueId);
+    
+    // Reload all data
+    const times = storage.getTodayPrayerTimes();
+    const name = storage.getMosqueName();
+    const all = storage.getAllPrayerTimes();
+    
+    setTodayTimes(times);
+    setMosqueName(name);
+    setAllTimes(all);
+    setActiveMosqueId(mosqueId);
+    
+    // Update index to today's date if available
+    if (times && all.length > 0) {
+      const index = all.findIndex(t => t.date === times.date);
+      setCurrentIndex(index >= 0 ? index : 0);
+    }
+    
+    if (times) {
+      const next = getNextPrayer(times);
+      setNextPrayer(next);
+      
+      // Reschedule notifications for new mosque
+      notificationService.scheduleNotifications(times);
+      
+      // Re-initialize dark mode scheduler
+      darkModeScheduler.initialize(times, setTheme);
+    }
+    
+    toast.success(`Switched to ${name}`);
   };
 
   // Swipe gestures for day navigation
@@ -201,14 +251,32 @@ export default function DashboardPage() {
 
       {/* Header */}
       <div className="mb-6 sm:mb-8">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 gap-2 sm:gap-4">
           <h1 className="text-2xl sm:text-3xl font-bold truncate">{mosqueName || "Prayer Times"}</h1>
           <Link href="/settings">
-            <Button variant="outline" size="icon" className="h-9 w-9 sm:h-10 sm:w-10">
+            <Button variant="outline" size="icon" className="h-9 w-9 sm:h-10 sm:w-10 shrink-0">
               <Edit2 className="h-4 w-4" />
             </Button>
           </Link>
         </div>
+
+        {/* Mosque Selector - Only show if multiple mosques exist */}
+        {mosques.length > 1 && (
+          <div className="mb-4">
+            <Select value={activeMosqueId || undefined} onValueChange={handleMosqueChange}>
+              <SelectTrigger className="w-full sm:w-auto sm:min-w-[250px]">
+                <SelectValue placeholder="Select a mosque" />
+              </SelectTrigger>
+              <SelectContent>
+                {mosques.map((mosque) => (
+                  <SelectItem key={mosque.id} value={mosque.id}>
+                    {mosque.mosqueName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         {/* Date Navigation */}
         <div className="flex items-center justify-between gap-2 sm:gap-4 mt-4">
